@@ -1,0 +1,13 @@
+.employee-container {
+    display: flex;
+    overflow-x: auto;
+    max-width: 100%;
+    margin-bottom: 20px;
+  }
+  
+  .employee-card {
+    flex: 0 0 auto;
+    width: 300px;
+    margin-right: 10px;
+  }
+  

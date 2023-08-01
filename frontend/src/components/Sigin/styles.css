@@ -1,0 +1,11 @@
+/* styles.css */
+.red-alert {
+    color: red;
+    font-size: 14px;
+  }
+  
+  .red-error {
+    color: red;
+    font-size: 12px;
+  }
+  

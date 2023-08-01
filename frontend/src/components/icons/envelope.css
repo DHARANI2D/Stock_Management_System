@@ -1,0 +1,11 @@
+.envelope-icon {
+    position: relative;
+    display: inline-block;
+    justify-content: space-between;
+    margin-right: 20px;
+    border-right-color: black;
+    border-color: black;
+    font-size: 24px; 
+    color:grey;
+  }
+  
