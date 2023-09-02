@@ -3,21 +3,23 @@ package com.iamneo.security.controller;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.iamneo.security.entity.Expense;
 import com.iamneo.security.service.ExpenseService;
-
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins  ="*")
 @RestController
 @RequestMapping("/api/expenses")
 public class ExpenseController {
+
     private final ExpenseService expenseService;
 
     @Autowired
@@ -30,20 +32,23 @@ public class ExpenseController {
         return expenseService.getAllExpenses();
     }
 
+    @GetMapping("/{id}")
+    public Expense getExpenseById(@PathVariable Long id) {
+        return expenseService.getExpenseById(id);
+    }
+
     @PostMapping
-    public Expense addExpense(@RequestBody Expense expense) {
-        return expenseService.addExpense(expense);
+    public Expense createExpense(@RequestBody Expense expense) {
+        return expenseService.createExpense(expense);
     }
 
-    @GetMapping("/sales-total")
-    public ResponseEntity<Double> getSalesTotalAmount() {
-        Double salesTotalAmount = expenseService.getSalesTotalAmount();
-        return ResponseEntity.ok(salesTotalAmount);
+    @PutMapping("/{id}")
+    public Expense updateExpense(@PathVariable Long id, @RequestBody Expense updatedExpense) {
+        return expenseService.updateExpense(id, updatedExpense);
     }
 
-    @GetMapping("/expense-total")
-    public ResponseEntity<Double> getExpenseTotalAmount() {
-        Double expenseTotalAmount = expenseService.getExpenseTotalAmount();
-        return ResponseEntity.ok(expenseTotalAmount);
+    @DeleteMapping("/{id}")
+    public void deleteExpense(@PathVariable Long id) {
+        expenseService.deleteExpense(id);
     }
 }

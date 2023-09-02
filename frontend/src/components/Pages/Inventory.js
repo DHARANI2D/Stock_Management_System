@@ -1,28 +1,25 @@
-import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import jsPDF from 'jspdf';
 import 'jspdf-autotable';
-import Slidebar from '../NavBar/Slidebar';
+import React, { useEffect, useState } from 'react';
+import { Button, Card, Col, Container, Form, Row, Table } from 'react-bootstrap';
 import Navbar from '../NavBar/Navbar';
-import { Button, Card, Col, Container, Row, Table } from 'react-bootstrap';
+import Slidebar from '../NavBar/Slidebar';
 
 const API_BASE_URL = 'http://localhost:8181/api';
 
 const InventoryManagementPage = () => {
-  const [stockLevels, setStockLevels] = useState([]);
   const [purchaseOrders, setPurchaseOrders] = useState([]);
-  const [salesOutlet, setSalesOutlet] = useState([]);
-  const [inventoryReports, setInventoryReports] = useState([]);
-
-  // State variables for input fields
   const [purchaseOrderProduct, setPurchaseOrderProduct] = useState('');
   const [purchaseOrderQuantity, setPurchaseOrderQuantity] = useState('');
+  const [purchaseOrderPrice, setPurchaseOrderPrice] = useState('');
+  const [purchaseOrderCategory, setPurchaseOrderCategory] = useState('');
+  const [productName, setProductName] = useState('');
 
-  const [salesOutletProduct, setSalesOutletProduct] = useState('');
-  const [salesOutletQuantity, setSalesOutletQuantity] = useState('');
+  const [productHistory, setProductHistory] = useState([]);
 
   useEffect(() => {
     fetchData();
+    fetchProductHistory();
   }, []);
 
   const fetchData = async () => {
@@ -39,19 +36,31 @@ const InventoryManagementPage = () => {
         },
       };
 
-      const stockResponse = await axios.get(`${API_BASE_URL}/inventory/all`, config);
-      setStockLevels(stockResponse.data);
-
       const purchaseOrdersResponse = await axios.get(`${API_BASE_URL}/inventory/purchase`, config);
       setPurchaseOrders(purchaseOrdersResponse.data);
-
-      const salesOutletResponse = await axios.get(`${API_BASE_URL}/inventory/sales`, config);
-      setSalesOutlet(salesOutletResponse.data);
-
-      const inventoryReportsResponse = await axios.get(`${API_BASE_URL}/inventory/reports`, config);
-      setInventoryReports(inventoryReportsResponse.data);
     } catch (error) {
       console.error('Error fetching data:', error);
+    }
+  };
+
+  const fetchProductHistory = async () => {
+    try {
+      const authToken = localStorage.getItem('token');
+      if (!authToken) {
+        console.error('User is not authenticated. Redirect to login or show error message.');
+        return;
+      }
+
+      const config = {
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+      };
+
+      const productHistoryResponse = await axios.get(`${API_BASE_URL}/inventory/all`, config);
+      setProductHistory(productHistoryResponse.data);
+    } catch (error) {
+      console.error('Error fetching product history:', error);
     }
   };
 
@@ -69,73 +78,28 @@ const InventoryManagementPage = () => {
         },
       };
 
+      const currentDate = getCurrentDateAndTime();
+
       const newOrder = {
         product: purchaseOrderProduct,
         quantity: parseInt(purchaseOrderQuantity, 10),
+        price: parseFloat(purchaseOrderPrice),
+        category: purchaseOrderCategory,
+        name: productName,
+        date: currentDate,
       };
 
       await axios.post(`${API_BASE_URL}/inventory/purchase`, newOrder, config);
       fetchData();
+
+      // Clear input fields
       setPurchaseOrderProduct('');
       setPurchaseOrderQuantity('');
+      setPurchaseOrderPrice('');
+      setPurchaseOrderCategory('');
+      setProductName('');
     } catch (error) {
       console.error('Error adding purchase order:', error);
-    }
-  };
-
-  const addSalesOutlet = async () => {
-    try {
-      const authToken = localStorage.getItem('token');
-      if (!authToken) {
-        console.error('User is not authenticated. Redirect to login or show error message.');
-        return;
-      }
-
-      const config = {
-        headers: {
-          Authorization: `Bearer ${authToken}`,
-        },
-      };
-
-      const newOutlet = {
-        product: salesOutletProduct,
-        quantity: parseInt(salesOutletQuantity, 10),
-      };
-
-      await axios.post(`${API_BASE_URL}/inventory/sales`, newOutlet, config);
-      fetchData();
-      setSalesOutletProduct('');
-      setSalesOutletQuantity('');
-    } catch (error) {
-      console.error('Error adding sales outlet:', error);
-    }
-  };
-
-  const generateInventoryReport = async () => {
-    try {
-      const authToken = localStorage.getItem('token');
-      if (!authToken) {
-        console.error('User is not authenticated. Redirect to login or show error message.');
-        return;
-      }
-
-      const config = {
-        headers: {
-          Authorization: `Bearer ${authToken}`,
-        },
-      };
-
-      const newReport = {
-        date: getCurrentDateAndTime(),
-        details: 'Sample Report',
-      };
-
-      await axios.post(`${API_BASE_URL}/inventory/reports`, newReport, config);
-      fetchData();
-
-      generatePDFReport(calculateCurrentStockLevels(), getCurrentDateAndTime());
-    } catch (error) {
-      console.error('Error generating inventory report:', error);
     }
   };
 
@@ -144,55 +108,6 @@ const InventoryManagementPage = () => {
     return now.toISOString();
   };
 
-  const generatePDFReport = (stockData, date) => {
-    const doc = new jsPDF();
-    const tableColumn = ['Product', 'Quantity'];
-    const tableRows = [];
-
-    stockData.forEach((item) => {
-      const rowData = [item.product, item.quantity];
-      tableRows.push(rowData);
-    });
-
-    doc.setFontSize(18);
-    doc.text('Inventory Stock Levels', 14, 16);
-
-    doc.autoTable(tableColumn, tableRows, { startY: 30 });
-
-    doc.save(`Inventory_Stock_Levels_${date}.pdf`);
-  };
-
-  const calculateCurrentStockLevels = () => {
-    const productQuantitiesMap = new Map();
-
-    // Calculate the total purchase quantity for each product
-    purchaseOrders.forEach((order) => {
-      const { product, quantity } = order;
-      if (productQuantitiesMap.has(product)) {
-        productQuantitiesMap.set(product, productQuantitiesMap.get(product) + quantity);
-      } else {
-        productQuantitiesMap.set(product, quantity);
-      }
-    });
-
-    // Subtract the sales quantity from the purchase quantity for each product
-    salesOutlet.forEach((outlet) => {
-      const { product, quantity } = outlet;
-      if (productQuantitiesMap.has(product)) {
-        productQuantitiesMap.set(product, productQuantitiesMap.get(product) - quantity);
-      } else {
-        productQuantitiesMap.set(product, -quantity);
-      }
-    });
-
-    // Create an array of updated stock levels
-    const updatedStockLevels = [];
-    productQuantitiesMap.forEach((quantity, product) => {
-      updatedStockLevels.push({ product, quantity });
-    });
-
-    return updatedStockLevels;
-  };
   return (
     <div style={{ marginLeft: '30px' }}>
       <Container fluid>
@@ -208,155 +123,130 @@ const InventoryManagementPage = () => {
       <Container>
         <Row>
           <Col>
-            <h1>Inventory Management</h1>
+            <h1>Purchase Orders</h1>
           </Col>
         </Row>
         <Row>
           <Col>
-            <Card>
-              <Card.Body>
-                <h2>Stock Levels</h2>
-                <Table striped bordered>
+                <Table  bordered className="purchase-orders-table">
                   <thead>
                     <tr>
                       <th>Product</th>
                       <th>Quantity</th>
-                      <th>Type</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {stockLevels.map((item, index) => (
-                      <tr key={index}>
-                        <td >{item.product}</td>
-                        <td>{item.quantity}</td>
-                        <td>{item.transactionType}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </Table>
-              </Card.Body>
-            </Card>
-          </Col>
-        </Row>
-        <br />
-        <Row>
-          <Col>
-            <Card>
-              <Card.Body>
-                <h2>Purchase Orders</h2>
-                <Table striped bordered>
-                  <thead>
-                    <tr>
-                      <th>Order ID</th>
-                      <th>Product</th>
-                      <th>Quantity</th>
+                      <th>Price</th>
+                      <th>Category</th>
+                      <th>Name of the Product</th>
+                      <th>Add</th>
                     </tr>
                   </thead>
                   <tbody>
                     {purchaseOrders.map((order, index) => (
                       <tr key={index}>
-                        <td>{order.id}</td>
                         <td>{order.product}</td>
                         <td>{order.quantity}</td>
+                        <td>${order.price.toFixed(2)}</td>
+                        <td>{order.category}</td>
+                        <td>{order.name}</td>
                       </tr>
                     ))}
-                  </tbody>
-                </Table>
-                <div>
-                  <input
-                    type="text"
-                    placeholder="Product"
-                    value={purchaseOrderProduct}
-                    onChange={(e) => setPurchaseOrderProduct(e.target.value)}
-                  />
-                  <input
-                    type="number"
-                    placeholder="Quantity"
-                    value={purchaseOrderQuantity}
-                    onChange={(e) => setPurchaseOrderQuantity(e.target.value)}
-                  />
-                  <Button variant="primary" onClick={addPurchaseOrder}>
-                    Add Purchase Order
-                  </Button>
-                </div>
-              </Card.Body>
-            </Card>
-          </Col>
-          <Col>
-            <Card>
-              <Card.Body>
-                <h2>Sales Outlet</h2>
-                <Table striped bordered>
-                  <thead>
                     <tr>
-                      <th>Outlet ID</th>
-                      <th>Product</th>
-                      <th>Quantity</th>
+                    <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
+                        <input
+                          type="text"
+                          placeholder="Product"
+                          value={purchaseOrderProduct}
+                          onChange={(e) => setPurchaseOrderProduct(e.target.value)}
+                          style={{ border: 'none', outline: 'none', textAlign: 'center' }}
+
+                        />
+                      </td>
+                      <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
+                        <input
+                          type="number"
+                          placeholder="Quantity"
+                          value={purchaseOrderQuantity}
+                          style={{ border: 'none', outline: 'none', textAlign: 'center' }}
+                          onChange={(e) => setPurchaseOrderQuantity(e.target.value)}
+                          inputMode="numeric"
+                        />
+                      </td>
+                      <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
+                        <input
+                          type="number"
+                          placeholder="Price"
+                          value={purchaseOrderPrice}
+                          style={{ border: 'none', outline: 'none', textAlign: 'center' }}
+                          onChange={(e) => setPurchaseOrderPrice(e.target.value)}
+                        />
+                      </td>
+                      <td>
+                        <Form.Group controlId="category">
+                          <Form.Control
+                            as="select"
+                            value={purchaseOrderCategory}
+                            style={{ border: 'none', outline: 'none', textAlign: 'center' }}
+                            onChange={(e) => setPurchaseOrderCategory(e.target.value)}
+                          >
+                            <option value="Electronics">Electronics</option>
+                            <option value="Clothing">Clothing</option>
+                            <option value="Furniture">Furniture</option>
+                            {/* Add more categories as needed */}
+                          </Form.Control>
+                        </Form.Group>
+                      </td>
+                      <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
+                        <input
+                          type="text"
+                          placeholder="Name of the Product"
+                          value={productName}
+                          style={{ border: 'none', outline: 'none' }}
+                          onChange={(e) => setProductName(e.target.value)}
+                        />
+                      </td>
+                      <td>
+                        <Button variant="success" onClick={addPurchaseOrder}>
+                          Add
+                        </Button>
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {salesOutlet.map((outlet, index) => (
-                      <tr key={index}>
-                        <td>{outlet.id}</td>
-                        <td>{outlet.product}</td>
-                        <td>{outlet.quantity}</td>
-                      </tr>
-                    ))}
                   </tbody>
                 </Table>
-                <div>
-                  <input
-                    type="text"
-                    placeholder="Product"
-                    value={salesOutletProduct}
-                    onChange={(e) => setSalesOutletProduct(e.target.value)}
-                  />
-                  <input
-                    type="number"
-                    placeholder="Quantity"
-                    value={salesOutletQuantity}
-                    onChange={(e) => setSalesOutletQuantity(e.target.value)}
-                  />
-                  <Button variant="primary" onClick={addSalesOutlet}>
-                    Add Sales Outlet
-                  </Button>
-                </div>
-              </Card.Body>
-            </Card>
           </Col>
         </Row>
+        <br /> {/* Add space between cards */}
         <Row>
           <Col>
-            <Card>
-              <Card.Body>
-                <h2>Inventory Reports</h2>
-                <Table striped bordered>
+                <h2>Product History</h2>
+                <Table striped bordered className="product-history-table">
                   <thead>
                     <tr>
-                      <th>Report ID</th>
+                      <th>Order ID</th>
+                      <th>Product</th>
+                      <th>Quantity</th>
+                      <th>Price</th>
+                      <th>Category</th>
+                      <th>Name of the Product</th>
                       <th>Date</th>
-                      <th>Details</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {inventoryReports.map((report, index) => (
+                    {productHistory.map((historyItem, index) => (
                       <tr key={index}>
-                        <td>{report.id}</td>
-                        <td>{report.date}</td>
-                        <td>{report.details}</td>
+                        <td>{historyItem.id}</td>
+                        <td>{historyItem.product}</td>
+                        <td>{historyItem.quantity}</td>
+                        <td>${historyItem.price.toFixed(2)}</td>
+                        <td>{historyItem.category}</td>
+                        <td>{historyItem.name}</td>
+                        <td>{historyItem.date}</td>
                       </tr>
                     ))}
                   </tbody>
                 </Table>
-                <Button variant="success" onClick={generatePDFReport}>
-                  Generate Inventory Report
-                </Button>
-              </Card.Body>
-            </Card>
           </Col>
         </Row>
       </Container>
-      </div>
+    </div>
   );
 };
 

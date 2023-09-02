@@ -1,70 +1,27 @@
-import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Button, Card, Col, Container, Form, ListGroup, Row } from 'react-bootstrap';
-import AppNavbar from '../NavBar/Navbar';
+import React, { useEffect, useState } from 'react';
+import { Button, Card, Col, Container, Form, Row, Table } from 'react-bootstrap';
+import Navbar from '../NavBar/Navbar';
 import Slidebar from '../NavBar/Slidebar';
-import Footer from '../NavBar/footer';
 
 const API_BASE_URL = 'http://localhost:8181/api';
 
-const ExpenseTracker = () => {
-  const [expenses, setExpenses] = useState([]);
-  const [sales, setSales] = useState([]);
-  const [newTransaction, setNewTransaction] = useState({
-    type: '',
-    description: '',
-    amount: '',
-    category: ''
-    
-  });
-const  vfe=localStorage.getItem('email');
+const SalesOrderPage = () => {
+  const [salesOrders, setSalesOrders] = useState([]);
+  const [salesOrderProduct, setSalesOrderProduct] = useState('');
+  const [salesOrderQuantity, setSalesOrderQuantity] = useState('');
+  const [salesOrderPrice, setSalesOrderPrice] = useState('');
+  const [salesOrderCategory, setSalesOrderCategory] = useState('');
+  const [customerName, setCustomerName] = useState('');
+
+  const [salesHistory, setSalesHistory] = useState([]);
 
   useEffect(() => {
-    // Fetch data from the server
-    const fetchTransactions = async () => {
-      try {
-        const authToken = localStorage.getItem('token');
-        if (!authToken) {
-          console.error('User is not authenticated. Redirect to login or show error message.');
-          return;
-        }
-
-        const config = {
-          headers: {
-            Authorization: `Bearer ${authToken}`
-          }
-        };
-
-        const expensesResponse = await axios.get(`${API_BASE_URL}/expenses`, config);
-        setExpenses(expensesResponse.data);
-
-        const salesResponse = await axios.get(`${API_BASE_URL}/sales`, config);
-        setSales(salesResponse.data);
-      } catch (error) {
-        console.error('Error fetching data:', error);
-      }
-    };
-
-    fetchTransactions();
+    fetchSalesOrders();
+    fetchSalesHistory();
   }, []);
 
-  const handleInputChange = (e) => {
-    setNewTransaction({
-      ...newTransaction,
-      [e.target.name]: e.target.value,
-    });
-  };
-
-  const handleFileChange = (e) => {
-    setNewTransaction({
-      ...newTransaction,
-      receipt: e.target.files[0],
-    });
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
+  const fetchSalesOrders = async () => {
     try {
       const authToken = localStorage.getItem('token');
       if (!authToken) {
@@ -74,184 +31,217 @@ const  vfe=localStorage.getItem('email');
 
       const config = {
         headers: {
-          Authorization: `Bearer ${authToken}`
-        }
+          Authorization: `Bearer ${authToken}`,
+        },
       };
 
-      if (newTransaction.type === 'expense') {
-        await axios.post(`${API_BASE_URL}/expenses`, newTransaction, config);
-      } else if (newTransaction.type === 'sale') {
-        await axios.post(`${API_BASE_URL}/sales`, newTransaction, config);
-      }
-
-      // Refetch the data after adding the new transaction
-      const expensesResponse = await axios.get(`${API_BASE_URL}/expenses`, config);
-      setExpenses(expensesResponse.data);
-
-      const salesResponse = await axios.get(`${API_BASE_URL}/sales`, config);
-      setSales(salesResponse.data);
-
-      setNewTransaction({
-        type: '',
-        description: '',
-        amount: '',
-        category: '',
-        mail: localStorage.getItem('email')
-
-      });
+      const salesOrdersResponse = await axios.get(`${API_BASE_URL}/expenses`, config);
+      setSalesOrders(salesOrdersResponse.data);
     } catch (error) {
-      console.error('Error adding transaction:', error);
+      console.error('Error fetching sales orders:', error);
     }
   };
-  const monthOptions = Array.from({ length: 12 }, (_, index) => {
-    const monthValue = index + 1;
-    return (
-      <option key={monthValue} value={monthValue}>
-        {new Date(0, index).toLocaleString('default', { month: 'long' })}
-      </option>
-    );
-  });
+
+  const fetchSalesHistory = async () => {
+    try {
+      const authToken = localStorage.getItem('token');
+      if (!authToken) {
+        console.error('User is not authenticated. Redirect to login or show error message.');
+        return;
+      }
+
+      const config = {
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+      };
+
+      const salesHistoryResponse = await axios.get(`${API_BASE_URL}/expenses`, config);
+      setSalesHistory(salesHistoryResponse.data);
+    } catch (error) {
+      console.error('Error fetching sales history:', error);
+    }
+  };
+
+  const addSalesOrder = async () => {
+    try {
+      const authToken = localStorage.getItem('token');
+      if (!authToken) {
+        console.error('User is not authenticated. Redirect to login or show error message.');
+        return;
+      }
+
+      const config = {
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+      };
+
+      const currentDate = getCurrentDateAndTime();
+
+      const newOrder = {
+        product: salesOrderProduct,
+        quantity: parseInt(salesOrderQuantity, 10),
+        price: parseFloat(salesOrderPrice),
+        category: salesOrderCategory,
+        customer: customerName,
+        date: currentDate,
+      };
+
+      await axios.post(`${API_BASE_URL}/expenses`, newOrder, config);
+      fetchSalesOrders();
+
+      // Clear input fields
+      setSalesOrderProduct('');
+      setSalesOrderQuantity('');
+      setSalesOrderPrice('');
+      setSalesOrderCategory('');
+      setCustomerName('');
+    } catch (error) {
+      console.error('Error adding sales order:', error);
+    }
+  };
+
+  const getCurrentDateAndTime = () => {
+    const now = new Date();
+    return now.toISOString();
+  };
+
   return (
-    <Container>
+    <div style={{ marginLeft: '30px' }}>
       <Container fluid>
         <Row>
           <Col md={1}>
             <Slidebar />
-            </Col>
-          <AppNavbar />
+          </Col>
+          <Col>
+            <Navbar />
+          </Col>
         </Row>
       </Container>
-      <Row className="justify-content-center mt-5">
-        <Col md={6}>
-          <Card>
-            <Card.Header as="h5">Expenses and Sales Bills</Card.Header>
-            <Card.Body>
-              <Form onSubmit={handleSubmit}>
-                <Form.Group controlId="type">
-                  <Form.Label>Type</Form.Label>
-                  <Form.Control
-                    as="select"
-                    name="type"
-                    value={newTransaction.type}
-                    onChange={handleInputChange}
-                  >
-                    <option value="">Select Type</option>
-                    <option value="expense">Expense</option>
-                    <option value="sale">Sale</option>
-                  </Form.Control>
-                </Form.Group>
-                <Form.Group controlId="description">
-                  <Form.Label>Description</Form.Label>
-                  <Form.Control
-                    type="text"
-                    name="description"
-                    value={newTransaction.description}
-                    onChange={handleInputChange}
-                  />
-                </Form.Group>
-                <Form.Group controlId="amount">
-                  <Form.Label>Amount</Form.Label>
-                  <Form.Control
-                    type="number"
-                    name="amount"
-                    value={newTransaction.amount}
-                    onChange={handleInputChange}
-                  />
-                </Form.Group>
-                <Form.Group controlId="category">
-                  <Form.Label>Category</Form.Label>
-                  <Form.Control
-                    as="select"
-                    name="category"
-                    value={newTransaction.category}
-                    onChange={handleInputChange}
-                  >
-                    <option value="">Select Category</option>
-                    <option value="Goods">Goods</option>
-                    <option value="Services">Services</option>
-                    <option value="Loan">Loan</option>
-                  </Form.Control>
-                </Form.Group>
-                <Form.Group controlId="month">
-                    <Form.Label>Month</Form.Label>
-                    <Form.Control
-                      as="select"
-                      name="month"
-                      value={newTransaction.month}
-                      onChange={handleInputChange}
-                    >
-                      <option value="">Select Month</option>
-                      {monthOptions}
-                    </Form.Control>
-                  </Form.Group>
-                  <Form.Group controlId="year">
-                    <Form.Label>Year</Form.Label>
-                    <Form.Control
-                      type="number"
-                      name="year"
-                      value={newTransaction.year}
-                      onChange={handleInputChange}
-                    />
-                  </Form.Group>
-                  <Button variant="primary" type="submit">
-                    Add Transaction
-                </Button>
-              </Form>
-            </Card.Body>
-          </Card>
-        </Col>
-      </Row>
-      <Row className="justify-content-center mt-4" style={{ height: '200px' }}>
-        <Col md={6}>
-          <Card>
-            <Card.Header as="h5">Expense List</Card.Header>
-            <Card.Body style={{ maxHeight: '300px', overflowY: 'auto' }}>
-              <ListGroup>
-                {expenses.map((expense, index) => (
-                  <ListGroup.Item key={index}>
-                    <strong>Description:</strong> {expense.description}
-                    <br />
-                    <strong>Amount:</strong> ${expense.amount}
-                    <br />
-                    <strong>Category:</strong> {expense.category}
-                    {expense.receipt && (
-                      <a href={URL.createObjectURL(expense.receipt)} target="_blank" rel="noreferrer">
-                        View Receipt
-                      </a>
-                    )}
-                  </ListGroup.Item>
+      <Container>
+        <Row>
+          <Col>
+            <h1>Sales Orders</h1>
+          </Col>
+        </Row>
+        <Row>
+          <Col>
+        
+                <Table  bordered className="sales-orders-table">
+                  <thead>
+                    <tr>
+                   
+                      <th>Product</th>
+                      <th>Quantity</th>
+                      <th>Price</th>
+                      <th>Category</th>
+                      <th>Customer Name</th>
+                      <th>Add</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                  
+                    <tr>
+                    
+                    <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
+                        <input
+                          type="text"
+                          placeholder="Product"
+                          value={salesOrderProduct}
+                          onChange={(e) => setSalesOrderProduct(e.target.value)}
+                          style={{ border: 'none', outline: 'none', textAlign: 'center' }}
+                        />
+                      </td>
+                      <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
+                        <input
+                          type="number"
+                          placeholder="Quantity"
+                          value={salesOrderQuantity}
+                          onChange={(e) => setSalesOrderQuantity(e.target.value)}
+                          style={{ border: 'none', outline: 'none', textAlign: 'center' }}
+                          inputMode="numeric"
+                        />
+                      </td>
+                      <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
+                        <input
+                          type="number"
+                          placeholder="Price"
+                          value={salesOrderPrice}
+                          onChange={(e) => setSalesOrderPrice(e.target.value)}
+                          style={{ border: 'none', outline: 'none', textAlign: 'center' }}
+                        />
+                      </td>
+                      <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
+                        <Form.Group controlId="category">
+                          <Form.Control
+                            as="select"
+                            value={salesOrderCategory}
+                            onChange={(e) => setSalesOrderCategory(e.target.value)}
+                            style={{ border: 'none', outline: 'none', textAlign: 'center' }}
+                          >
+                            <option value="Electronics">Electronics</option>
+                            <option value="Clothing">Clothing</option>
+                            <option value="Furniture">Furniture</option>
+                            {/* Add more categories as needed */}
+                          </Form.Control>
+                        </Form.Group>
+                      </td>
+                      <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
+                        <input
+                          type="text"
+                          placeholder="Customer Name"
+                          value={customerName}
+                          onChange={(e) => setCustomerName(e.target.value)}
+                          style={{ border: 'none', outline: 'none', textAlign: 'center' }}
+                        />
+                      </td>
+                      <td>
+                        <Button variant="success" onClick={addSalesOrder}>
+                          Add
+                        </Button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </Table>
+              
+          </Col>
+        </Row>
+        <br />
+        <Row>
+          <Col>
+            <h2>Sales History</h2>
+            <Table striped bordered className="sales-history-table">
+              <thead>
+                <tr>
+                  <th>Order ID</th>
+                  <th>Product</th>
+                  <th>Quantity</th>
+                  <th>Price</th>
+                  <th>Category</th>
+                  <th>Customer Name</th>
+                  <th>Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                {salesHistory.map((historyItem, index) => (
+                  <tr key={index}>
+                    <td>{historyItem.id}</td>
+                    <td>{historyItem.product}</td>
+                    <td>{historyItem.quantity}</td>
+                    <td>${historyItem.price.toFixed(2)}</td>
+                    <td>{historyItem.category}</td>
+                    <td>{historyItem.customer}</td>
+                    <td>{historyItem.date}</td>
+                  </tr>
                 ))}
-              </ListGroup>
-            </Card.Body>
-          </Card>
-        </Col>
-        <Col md={6}>
-          <Card>
-            <Card.Header as="h5">Sales List</Card.Header>
-            <Card.Body style={{ maxHeight: '300px', overflowY: 'auto' }}>
-              <ListGroup>
-                {sales.map((sale, index) => (
-                  <ListGroup.Item key={index}>
-                    <strong>Description:</strong> {sale.description}
-                    <br />
-                    <strong>Amount:</strong> ${sale.amount}
-                    <br />
-                    <strong>Category:</strong> {sale.category}
-                    {sale.receipt && (
-                      <a href={URL.createObjectURL(sale.receipt)} target="_blank" rel="noreferrer">
-                        View Receipt
-                      </a>
-                    )}
-                  </ListGroup.Item>
-                ))}
-              </ListGroup>
-            </Card.Body>
-          </Card>
-        </Col>
-      </Row>
-      <Footer />
-    </Container>
+              </tbody>
+            </Table>
+          </Col>
+        </Row>
+      </Container>
+    </div>
   );
 };
 
-export default ExpenseTracker;
+export default SalesOrderPage;

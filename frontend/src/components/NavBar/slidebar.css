@@ -9,8 +9,8 @@
     top: 50%;
     left: 60px;
     padding: 5px;
-    background-color: #333; /* Same as the sidebar background color */
-    color: #fff; /* White text */
+    background-color: #333;
+    color: #fff;
     border-radius: 5px;
     pointer-events: none;
     opacity: 0;
@@ -22,3 +22,4 @@
     display: block;
     opacity: 1;
   }
+  
