@@ -1,4 +1,4 @@
-# STOCKMEAN
+# STOCKMAVEN
 
 ## Overview
 
@@ -12,7 +12,7 @@ List and describe the main features of your project:
 
 - Description of what users can find on the landing page.
 - How it engages users and encourages further exploration.
-<img width="1429" alt="Screenshot 2023-09-03 at 10 19 05 AM" src="https://github.com/DHARANI2D/Inventory_Manager/assets/99940501/0a1797f2-ad11-473b-981e-d249c9d52559">
+<img width="1440" alt="Screenshot 2023-09-03 at 10 30 36 AM" src="https://github.com/DHARANI2D/Inventory_Manager/assets/99940501/7692daf4-a81c-4224-a318-f3aa6094615e">
 
 ### Dashboard
 
